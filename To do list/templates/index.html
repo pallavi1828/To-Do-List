@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>To-Do Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <style>
+        .chat-section, .form-section {
+            margin-bottom: 20px;
+        }
+        .input-container input, .form-section input, .form-section select {
+            padding: 8px;
+            margin-right: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        .command-buttons button, .form-section select {
+            padding: 8px 12px;
+            margin: 5px 5px 0 0;
+            border: none;
+            border-radius: 8px;
+            background-color: #4a90e2;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .command-buttons button:hover, .form-section select:hover {
+            background-color: #357bd8;
+        }
+        .icon-header {
+            font-size: 3rem;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Monkey Bot Icon -->
+        <div class="icon-header">🙊 To-Do List Bot</div>
+
+        <h1 style="text-align:center;">📝 To-Do List Chatbot</h1>
+
+        <!-- Chat Display -->
+        <div id="chatbox" class="chat-section"></div>
+
+        <!-- Add Task Form -->
+        <div class="form-section">
+            <h3>Add Task</h3>
+            <input type="text" id="taskTitle" placeholder="Task Title" />
+            <select id="taskPriority">
+                <option value="">Priority</option>
+                <option value="1">1 - Highest</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5 - Lowest</option>
+            </select>
+            <button onclick="addTask()">Add</button>
+        </div>
+
+        <!-- Delete Task Form -->
+        <div class="form-section">
+            <h3>Delete Task</h3>
+            <input type="text" id="deleteTitle" placeholder="Task Title to Delete" />
+            <button onclick="deleteTask()">Delete</button>
+        </div>
+
+        <!-- Quick Command Buttons -->
+        <div class="command-buttons">
+            <h3>Quick Commands</h3>
+            <button onclick="sendCommand('View tasks')">View Tasks</button>
+            <button onclick="sendCommand('Show history')">Show History</button>
+            <button onclick="sendCommand('Hello')">Hello</button>
+            <button onclick="sendCommand('Bye')">Bye</button>
+        </div>
+
+        <!-- Manual Input -->
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off" />
+            <button onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <script>
+        const chatbox = document.getElementById("chatbox");
+        const userInput = document.getElementById("userInput");
+
+        function appendMessage(message, sender) {
+            const msg = document.createElement("div");
+            msg.className = `message ${sender}`;
+            msg.innerText = message;
+            chatbox.appendChild(msg);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            appendMessage("🧑 " + message, "user");
+            userInput.value = "";
+
+            fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message }),
+            })
+            .then(res => res.json())
+            .then(data => appendMessage("🤖 " + data.reply, "bot"))
+            .catch(err => appendMessage("⚠️ Error: " + err.message, "bot"));
+        }
+
+        function sendCommand(commandText) {
+            appendMessage("🧑 " + commandText, "user");
+
+            fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: commandText }),
+            })
+            .then(res => res.json())
+            .then(data => appendMessage("🤖 " + data.reply, "bot"))
+            .catch(err => appendMessage("⚠️ Error: " + err.message, "bot"));
+        }
+
+        function addTask() {
+            const title = document.getElementById("taskTitle").value.trim();
+            const priority = document.getElementById("taskPriority").value;
+            if (!title || !priority) {
+                alert("Please enter both title and priority.");
+                return;
+            }
+            const message = `Add task: ${title}: ${priority}`;
+            sendCommand(message);
+            document.getElementById("taskTitle").value = "";
+            document.getElementById("taskPriority").value = "";
+        }
+
+        function deleteTask() {
+            const title = document.getElementById("deleteTitle").value.trim();
+            if (!title) {
+                alert("Please enter a task title to delete.");
+                return;
+            }
+            const message = `Delete task ${title}`;
+            sendCommand(message);
+            document.getElementById("deleteTitle").value = "";
+        }
+
+        userInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
+</body>
+</html>
